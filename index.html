@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chọn ảnh, lưu kỷ niệm và nhạc của tôi</title>
+  <style>
+    :root {
+      --primary: #2c3e50;
+      --accent: #3498db;
+      --bg-light: #f8f9fa;
+      --bg-dark: #1e1e1e;
+      --text-light: #333;
+      --text-dark: #f0f0f0;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      text-align: center;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body.dark {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    h1 {
+      padding: 20px;
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .note-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      margin: 20px auto;
+      max-width: 400px;
+      text-align: left;
+      padding: 0 20px;
+      margin-bottom: 20px;
+    }
+
+    .controls input, .controls textarea, .controls select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    #downloadBtn {
+      padding: 10px 20px;
+      background: green;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    #imageContainer {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transition: transform 0.2s ease;
+    }
+
+    .button-container {
+      margin-top: 20px;
+    }
+
+    #audio {
+      width: 100%;
+      max-width: 500px;
+      margin: 20px auto;
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 1.5rem;
+      }
+
+      .controls {
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="title">📸 Kỷ niệm của tôi</h1>
+
+  <!-- Đưa phần ghi chú lên dưới tiêu đề -->
+  <div class="note-container">
+    <div class="note" id="note"></div>
+  </div>
+
+  <!-- Di chuyển phần ảnh xuống dưới ghi chú -->
+  <div id="imageContainer"></div>
+
+  <!-- Phần phát nhạc sẽ được di chuyển xuống đây -->
+  <audio id="audio" controls autoplay>
+    <source id="audioSource" src="" type="audio/mpeg" />
+    Trình duyệt không hỗ trợ phát nhạc.
+  </audio>
+
+  <!-- Phần tải ảnh xuống dưới nút xoay -->
+  <h2><label>🖼️ Chọn ảnh (jpg, jpeg, png, gif)</label></h2>
+  <input type="file" id="fileInput" accept="image/jpeg, image/png, image/gif" />
+
+  <!-- Các nút xoay ảnh ngay sau phần tải ảnh -->
+  <div class="button-container">
+    <button id="rotateLeft" disabled>Xoay trái</button>
+    <button id="rotateRight" disabled>Xoay phải</button>
+  </div>
+
+  <!-- Phần controls chứa các ô nhập liệu và chế độ ngày/đêm -->
+  <div class="controls">
+    <label for="titleInput">Tiêu đề:</label>
+    <input type="text" id="titleInput" placeholder="Nhập tiêu đề kỷ niệm" />
+    <label for="titleColor">Chọn màu tiêu đề:</label>
+    <input type="color" id="titleColor" value="#000000" onchange="applyColor('title')"/>
+
+    <label for="titleSize">Chọn kích thước chữ tiêu đề (px):</label>
+    <input type="number" id="titleSize" value="50" min="10" max="100" onchange="applyFontSize('title')"/>
+
+    <label for="noteInput">Ghi chú:</label>
+    <textarea id="noteInput" placeholder="Nhập ghi chú cảm xúc..."></textarea>
+    <label for="noteColor">Chọn màu ghi chú:</label>
+    <input type="color" id="noteColor" value="#000000" onchange="applyColor('note')"/>
+
+    <label for="noteSize">Chọn kích thước chữ ghi chú (px):</label>
+    <input type="number" id="noteSize" value="30" min="10" max="100" onchange="applyFontSize('note')"/>
+
+    <label for="noteDuration">Thời gian hiển thị ghi chú (giây):</label>
+    <input type="number" id="noteDuration" value="1" min="1" max="10" onchange="applyNoteDuration()"/>
+
+    <button onclick="applyChanges()">Lưu kỷ niệm</button>
+    <button onclick="toggleDarkMode()">🌗 Chuyển chế độ Ngày/Đêm</button>
+  </div>
+
+  <div class="controls">
+    <label>🎵 Chọn nhạc (mp3, m4a, wav, ogg, flac):</label>
+    <input type="file" accept="audio/mp3, audio/m4a, audio/wav, audio/ogg, audio/flac" onchange="loadAudio(event)" />
+  </div>
+
+  <script>
+    let rotation = 0;
+    let notes = [];
+    let currentIndex = 0;
+    let intervalId = null;
+    let noteDuration = 1000; // Default to 1 second for each note
+
+    const fileInput = document.getElementById('fileInput');
+    const imageContainer = document.getElementById('imageContainer');
+    const rotateLeftButton = document.getElementById('rotateLeft');
+    const rotateRightButton = document.getElementById('rotateRight');
+    const audio = document.getElementById("audio");
+    const audioSource = document.getElementById("audioSource");
+
+    let image = null;
+
+    fileInput.addEventListener('change', function() {
+      const file = fileInput.files[0];
+      if (file && (file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif')) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = document.createElement('img');
+          img.src = event.target.result;
+          img.id = 'uploadedImage';
+          imageContainer.innerHTML = ''; // Xoá ảnh cũ nếu có
+          imageContainer.appendChild(img);
+          image = img;
+          rotateLeftButton.disabled = false;
+          rotateRightButton.disabled = false;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        alert('Chỉ chấp nhận ảnh JPG, JPEG, PNG hoặc GIF.');
+      }
+    });
+
+    rotateLeftButton.addEventListener('click', function() {
+      rotation -= 90;
+      updateImageRotation();
+    });
+
+    rotateRightButton.addEventListener('click', function() {
+      rotation += 90;
+      updateImageRotation();
+    });
+
+    function updateImageRotation() {
+      if (image) {
+        image.style.transform = `rotate(${rotation}deg)`;
+
+        // Khi xoay, luôn đảm bảo ảnh sẽ full theo chiều ngang của màn hình
+        if (rotation % 180 !== 0) {
+          image.style.width = '100vh'; // Khi xoay ảnh theo chiều dọc, chiều rộng trở thành chiều cao màn hình
+          image.style.height = 'auto'; // Chiều cao tự động theo tỷ lệ
+        } else {
+          image.style.width = '100%'; // Quay lại chiều ngang full màn hình
+          image.style.height = '100%'; // Chiều cao tự động theo tỷ lệ
+        }
+      }
+    }
+
+    function applyChanges() {
+      const title = document.getElementById("titleInput").value;
+      const note = document.getElementById("noteInput").value;
+      const titleColor = document.getElementById("titleColor").value;
+      const noteColor = document.getElementById("noteColor").value;
+
+      if (title) {
+        const titleEl = document.getElementById("title");
+        titleEl.innerText = title;
+        titleEl.style.color = titleColor;
+      }
+
+      const noteEl = document.getElementById("note");
+      noteEl.innerHTML = "";
+
+      if (note) {
+        notes = note.split(/\n|\.\s*/).filter(Boolean); // Convert note input to array
+        startLoop(); // Start the note display loop
+      }
+    }
+
+    function applyColor(type) {
+      const color = type === 'title' ? document.getElementById('titleColor').value : document.getElementById('noteColor').value;
+      if (type === 'title') {
+        const titleEl = document.getElementById("title");
+        titleEl.style.color = color;
+      } else {
+        const noteEl = document.getElementById("note");
+        noteEl.style.color = color;
+      }
+    }
+
+    function applyFontSize(type) {
+      const size = type === 'title' ? document.getElementById('titleSize').value : document.getElementById('noteSize').value;
+      if (type === 'title') {
+        const titleEl = document.getElementById("title");
+        titleEl.style.fontSize = `${size}px`;
+      } else {
+        const noteEl = document.getElementById("note");
+        noteEl.style.fontSize = `${size}px`;
+      }
+    }
+
+    function applyNoteDuration() {
+      noteDuration = document.getElementById('noteDuration').value * 1000; // Convert seconds to milliseconds
+    }
+
+    function startLoop() {
+      if (notes.length === 0) {
+        alert("Vui lòng nhập ít nhất một dòng ghi chú.");
+        return;
+      }
+
+      currentIndex = 0;
+
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+
+      showNote();
+
+      intervalId = setInterval(() => {
+        currentIndex = (currentIndex + 1) % notes.length;
+        showNote();
+      }, noteDuration); // Use dynamic note duration
+    }
+
+    function showNote() {
+      const noteEl = document.getElementById("note");
+      noteEl.textContent = notes[currentIndex]; // Show the current note
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+
+    function loadAudio(event) {
+      const file = event.target.files[0];
+
+      // Kiểm tra loại tệp và thiết lập đường dẫn cho phần tử audio
+      if (file.type.includes('audio')) {
+        audio.style.display = "block";
+        audioSource.src = URL.createObjectURL(file);
+        audio.load();
+        audio.play(); // Auto play the audio after loading
+      } else {
+        alert("Vui lòng chọn tệp âm thanh hợp lệ.");
+      }
+    }
+
+    // Thêm sự kiện phát lại tự động khi nhạc kết thúc
+    audio.addEventListener('ended', function() {
+      audio.currentTime = 0; // Đưa thời gian nhạc về 0
+      audio.play(); // Phát lại nhạc
+    });
+  </script>
+
+</body>
+</html>
