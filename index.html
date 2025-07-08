@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Ảnh & Nhạc của tôi</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      text-align: center;
+      padding: 30px;
+    }
+    h1 {
+      color: #4CAF50;
+    }
+    img {
+      max-width: 90%;
+      border-radius: 10px;
+      margin-top: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    audio {
+      margin-top: 30px;
+      width: 80%;
+    }
+    .note {
+      margin-top: 20px;
+      font-style: italic;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🌸 Ký ức học trò 🌸</h1>
+
+  <form enctype="multipart/form-data">
+    <label for="imageUpload">Chọn ảnh (jpg, jpeg, png, gif):</label>
+    <input type="file" id="imageUpload" name="image" accept=".jpg, .jpeg, .png, .gif" onchange="previewImage(event)">
+    <br><br>
+
+    <label for="audioUpload">Chọn nhạc (mp3, m4a, wav, ogg, flac):</label>
+    <input type="file" id="audioUpload" name="audio" accept=".mp3, .m4a, .wav, .ogg, .flac" onchange="previewAudio(event)">
+  </form>
+
+  <br>
+  
+  <!-- Hiển thị ảnh đã chọn -->
+  <img id="imagePreview" src="" alt="Ảnh kỷ niệm" style="display: none;">
+
+  <!-- Hiển thị nhạc đã chọn -->
+  <audio id="audioPreview" controls style="display: none;">
+    Trình duyệt không hỗ trợ phát nhạc.
+  </audio>
+
+  <div class="note">Một chiều đạp xe dưới tán hoa tím, giai điệu vang lên nhẹ nhàng...</div>
+
+  <script>
+    // Hàm xem trước ảnh
+    function previewImage(event) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const output = document.getElementById('imagePreview');
+        output.src = reader.result;
+        output.style.display = 'block';
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+
+    // Hàm xem trước nhạc
+    function previewAudio(event) {
+      const reader = new FileReader();
+      reader.onload = function() {
+        const audio = document.getElementById('audioPreview');
+        audio.src = reader.result;
+        audio.style.display = 'block';
+      };
+      reader.readAsDataURL(event.target.files[0]);
+    }
+  </script>
+
+</body>
+</html>
